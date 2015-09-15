@@ -1,6 +1,9 @@
 #######################################################################
-import JSON
+import JSON, Conda
 using Compat
+
+# remove deps.jl if it exists, in case build.jl fails
+isfile("deps.jl") && rm("deps.jl")
 
 # print to stderr, since that is where Pkg prints its messages
 eprintln(x...) = println(STDERR, x...)
@@ -8,8 +11,38 @@ eprintln(x...) = println(STDERR, x...)
 # Make sure Python uses UTF-8 output for Unicode paths
 ENV["PYTHONIOENCODING"] = "UTF-8"
 
-include("jupyter.jl")
-const jupyter, jupyter_vers = find_jupyter()
+
+const jupyter, jupyter_vers = try
+    "jupyter",convert(VersionNumber, chomp(readall(`jupyter kernelspec --version`)))
+catch e1
+    try
+        "ipython",convert(VersionNumber, chomp(readall(`ipython --version`)))
+    catch e2
+        try
+            "ipython2",convert(VersionNumber, chomp(readall(`ipython2 --version`)))
+        catch e3
+            try
+                "ipython3",convert(VersionNumber, chomp(readall(`ipython3 --version`)))
+            catch e4
+                try
+                    "ipython.bat",convert(VersionNumber, chomp(readall(`ipython.bat --version`)))
+                catch e5
+                    eprintln("No system wide Jupyter or IPython is found, got the following errors\n",
+                        "   $e1\n   $e2\n   $e3\n   $e4" * (@windows ? "\n$e5\n" : ""),
+                        "IJulia will use the python distribution in the Conda package")
+                    Conda.add("jupyter")
+                    try
+                        joinpath(Conda.SCRIPTDIR,"jupyter"),convert(VersionNumber, chomp(readall(`$(joinpath(Conda.SCRIPTDIR,"jupyter")) kernelspec --version`)))
+                    catch e6
+                        error("Jupyter could not be found in Conda.jl, got the following error\n",
+                              "   $e6\n"  )
+                    end
+                end
+            end
+        end
+    end
+end
+
 
 if basename(jupyter) == "jupyter"
     eprintln("Found jupyter kernelspec version $jupyter_vers ... ok.")
@@ -79,3 +112,10 @@ copy_config("logo-64x64.png", juliakspec)
 
 eprintln("Installing julia kernelspec $spec_name")
 run(`$jupyter kernelspec install --replace --user $juliakspec`)
+
+open("deps.jl", "w") do f
+    print(f, """
+          const jupyter = "$(escape_string(jupyter))"
+          const jupyter_vers = $(repr(jupyter_vers))
+          """)
+end

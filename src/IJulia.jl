@@ -186,7 +186,7 @@ end
 export notebook
 function notebook(jupyter=jupyter)
     inited && error("IJulia is already running")
-    run(`$jupyter notebook`)
+    run(`$jupyter-notebook`)
 end
 
 end # IJulia

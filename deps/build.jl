@@ -13,7 +13,7 @@ ENV["PYTHONIOENCODING"] = "UTF-8"
 
 
 const jupyter, jupyter_vers = try
-    "jupyter",convert(VersionNumber, chomp(readall(`jupyter kernelspec --version`)))
+    "jupyter",convert(VersionNumber, chomp(readall(`jupyter-kernelspec --version`)))
 catch e1
     try
         "ipython",convert(VersionNumber, chomp(readall(`ipython --version`)))
@@ -32,7 +32,7 @@ catch e1
                         "IJulia will use the python distribution in the Conda package")
                     Conda.add("jupyter")
                     try
-                        joinpath(Conda.SCRIPTDIR,"jupyter"),convert(VersionNumber, chomp(readall(`$(joinpath(Conda.SCRIPTDIR,"jupyter")) kernelspec --version`)))
+                        joinpath(Conda.SCRIPTDIR,"jupyter"),convert(VersionNumber, chomp(readall(`$(joinpath(Conda.SCRIPTDIR,"jupyter-kernelspec")) --version`)))
                     catch e6
                         error("Jupyter could not be found in Conda.jl, got the following error\n",
                               "   $e6\n"  )
@@ -111,7 +111,7 @@ copy_config("logo-32x32.png", juliakspec)
 copy_config("logo-64x64.png", juliakspec)
 
 eprintln("Installing julia kernelspec $spec_name")
-run(`$jupyter kernelspec install --replace --user $juliakspec`)
+run(`$jupyter-kernelspec install --replace --user $juliakspec`)
 
 open("deps.jl", "w") do f
     print(f, """
